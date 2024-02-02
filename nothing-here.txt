@@ -1,0 +1,103 @@
+router
+
+
+
+
+var express = require("express");
+var router = express.Router();
+
+
+
+const credential = {
+  email: "yesudasmj50@gmail.com",
+  password:"das123"
+}
+
+function isLoggedIn(req,res,next){
+  if(req.session&&req.session.user){
+    return next();
+  }
+  res.redirect('/')
+}
+
+//login user
+router.post('/login',(req,res)=>{
+if(req.body.email==credential.email&&req.body.password==credential.password){
+  req.session.user=req.body.email;
+  res.redirect('/route/dashboard');
+  //res.end("Login Successful...!");
+}else{
+    res.end("Invalid Username")
+}
+})
+
+//route for dashboard
+router.get('/dashboard',isLoggedIn,(req,res)=>{
+  if(req.session.user){
+    res.render('dashboard',{user:req.session.user})
+  }else{
+    res.send("Unauthorize User")
+  }
+})
+
+// route for logout
+router.get('/logout',(req,res)=>{
+  req.session.destroy(function(err){
+   if(err){
+    console.log(err);
+    res.send("Error")
+   }
+   else{
+    res.redirect('/')
+   }
+  })
+})
+
+module.exports=router
+
+server.js-----------------------------------------------
+
+const express = require("express");
+const path = require("path");
+const bodyparser = require("body-parser");
+const session = require("express-session");
+// const {v4:uuidv4} = require("uuid");
+const nocache = require('nocache')
+const router = require("./router");
+
+
+
+const app = express();
+
+
+
+const port = process.env.PORT||3000;
+
+app.use(bodyparser.json())
+app.use(bodyparser.urlencoded({extended:true}))
+
+app.set("view engine","ejs");
+
+app.use(nocache());
+
+//load static assets
+app.use('/static',express.static(path.join(__dirname,'public')))
+
+app.use(session({
+  secret:'secret-key',//'1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed'
+  resave:false,
+  saveUninitialized:true,
+  cookie:{maxAge:90000}
+}))
+
+app.use('/route',router)
+
+//home route
+app.get('/',(req,res)=>{
+  if(req.session.user){
+    res.render('dashboard',{user:req.session.user})
+  }
+    res.render('base',{ title: "Login System"});
+})
+
+app.listen(port,()=>(console.log("lostening to the srever on http://localhost:3000")))
